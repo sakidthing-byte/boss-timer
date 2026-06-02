@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Boss Timer</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #141b34;
+      --card2: #10172b;
+      --text: #eef2ff;
+      --muted: #9ca3af;
+      --line: #26304f;
+      --blue: #60a5fa;
+      --green: #34d399;
+      --red: #fb7185;
+      --yellow: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #080c18, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { margin: 8px 0 4px; font-size: 28px; }
+    .sub { color: var(--muted); margin-bottom: 16px; }
+    .card {
+      background: rgba(20, 27, 52, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.28);
+      margin-bottom: 14px;
+    }
+    .top {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: end;
+    }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input, textarea, button {
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--card2);
+      color: var(--text);
+      padding: 10px 12px;
+      width: 100%;
+      outline: none;
+    }
+    input:focus, textarea:focus { border-color: var(--blue); }
+    textarea { min-height: 110px; resize: vertical; }
+    button {
+      cursor: pointer;
+      border: none;
+      font-weight: 700;
+      background: #24304f;
+    }
+    button.primary { background: var(--blue); color: #06101f; }
+    button.danger { background: #5b1b2a; color: #fecdd3; }
+    button.green { background: #14532d; color: #bbf7d0; }
+    .buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+    .clock {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      text-align: right;
+    }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; }
+    th, td { padding: 8px 5px; border-bottom: 1px solid var(--line); text-align: center; }
+    th { color: var(--muted); font-size: 13px; font-weight: 600; }
+    td:first-child, th:first-child { text-align: left; }
+    .chan { font-weight: 800; font-size: 18px; }
+    .small-input { text-align: center; padding: 9px 6px; }
+    .count { font-variant-numeric: tabular-nums; font-weight: 800; }
+    .spawn { color: var(--green); font-variant-numeric: tabular-nums; }
+    .warn { color: var(--yellow); }
+    .done { color: var(--red); }
+    .result {
+      white-space: pre-line;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.7;
+      background: #0b1224;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 80px;
+    }
+    .hint { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    @media (max-width: 620px) {
+      body { padding: 10px; }
+      .top { grid-template-columns: 1fr; }
+      .clock { text-align: left; }
+      .buttons { grid-template-columns: 1fr 1fr; }
+      th, td { padding: 7px 3px; font-size: 14px; }
+      .chan { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Boss Timer</h1>
+    <div class="sub">ใส่เวลา 9 แนล แล้วกด Start — เตือนก่อน 5 นาที และเตือนตอนหมดเวลา</div>
+
+    <div class="card">
+      <div class="top">
+        <div>
+          <label>เวลาเริ่มจด</label>
+          <input id="startTime" type="time" step="1" />
+        </div>
+        <div class="clock" id="clock">--:--:--</div>
+      </div>
+      <div class="buttons">
+        <button class="green" id="nowBtn">ใช้เวลาปัจจุบัน</button>
+        <button class="primary" id="startBtn">Start</button>
+        <button class="danger" id="clearBtn">Clear</button>
+        <button id="soundBtn">เปิดเสียง</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>แนล</th>
+            <th>ชม</th>
+            <th>นาที</th>
+            <th>วิ</th>
+            <th>เวลาเกิด</th>
+            <th>เหลือ</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <label>พิมพ์หรือใช้ไมค์คีย์บอร์ดมือถือพูดใส่ตรงนี้</label>
+      <textarea id="voiceText" placeholder="ตัวอย่าง:\nช่องห้า 1 ชั่วโมง 32 นาที\nช่องหก 1 ชั่วโมง 53 นาที\nช่องแปด 7 นาที 32 วิ\nช่องเก้า 25 นาที"></textarea>
+      <div class="buttons">
+        <button class="primary" id="parseBtn">แปลงข้อความ</button>
+        <button id="pasteExampleBtn">ใส่ตัวอย่าง</button>
+        <button id="copyBtn">Copy ผลลัพธ์</button>
+        <button id="saveBtn">Save</button>
+      </div>
+      <p class="hint">บนมือถือให้แตะช่องนี้ แล้วกดปุ่มไมค์บนคีย์บอร์ดเพื่อพูดได้เลย</p>
+    </div>
+
+    <div class="card">
+      <label>เรียงเวลาเกิด</label>
+      <div class="result" id="result">ยังไม่มีข้อมูล</div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const rowsEl = document.getElementById('rows');
+  const clockEl = document.getElementById('clock');
+  const startTimeEl = document.getElementById('startTime');
+  const resultEl = document.getElementById('result');
+  const voiceTextEl = document.getElementById('voiceText');
+
+  let timers = [];
+  let running = false;
+  let audioCtx = null;
+  let interval = null;
+
+  const thaiNums = {
+    'ศูนย์':0,'หนึ่ง':1,'นึง':1,'เอ็ด':1,'สอง':2,'สาม':3,'สี่':4,'ห้า':5,
+    'หก':6,'เจ็ด':7,'แปด':8,'เก้า':9
+  };
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function fmtTime(d, withSec = false) {
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}${withSec ? ':' + pad(d.getSeconds()) : ''}`;
+  }
+  function fmtLeft(ms) {
+    if (ms <= 0) return '00:00:00';
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  }
+  function numberFromText(x) {
+    if (!x) return 0;
+    x = String(x).trim();
+    if (/^\d+$/.test(x)) return Number(x);
+    return thaiNums[x] ?? 0;
+  }
+  function todayAtTime(value) {
+    const now = new Date();
+    const [h, m, s = 0] = value.split(':').map(Number);
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h || 0, m || 0, s || 0, 0);
+  }
+  function setNow() {
+    const n = new Date();
+    startTimeEl.value = `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;
+  }
+  function createRows() {
+    rowsEl.innerHTML = '';
+    for (let i = 1; i <= 9; i++) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="chan">${i}</td>
+        <td><input class="small-input h" inputmode="numeric" type="number" min="0" placeholder="0"></td>
+        <td><input class="small-input m" inputmode="numeric" type="number" min="0" placeholder="0"></td>
+        <td><input class="small-input s" inputmode="numeric" type="number" min="0" placeholder="0"></td>
+        <td class="spawn" id="spawn-${i}">--:--</td>
+        <td class="count" id="left-${i}">00:00:00</td>
+      `;
+      rowsEl.appendChild(tr);
+    }
+  }
+  function getInputs() {
+    const data = [];
+    [...rowsEl.querySelectorAll('tr')].forEach((tr, idx) => {
+      const h = Number(tr.querySelector('.h').value || 0);
+      const m = Number(tr.querySelector('.m').value || 0);
+      const s = Number(tr.querySelector('.s').value || 0);
+      if (h || m || s) data.push({ ch: idx + 1, h, m, s });
+    });
+    return data;
+  }
+  function setChannel(ch, h, m, s) {
+    const tr = rowsEl.querySelectorAll('tr')[ch - 1];
+    if (!tr) return;
+    tr.querySelector('.h').value = h || '';
+    tr.querySelector('.m').value = m || '';
+    tr.querySelector('.s').value = s || '';
+  }
+  function beep(type = 'normal') {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.value = type === 'warn' ? 880 : 1200;
+      g.gain.setValueAtTime(0.001, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+      o.start(); o.stop(audioCtx.currentTime + 0.65);
+    } catch(e) {}
+  }
+  function notify(title, body, type) {
+    beep(type);
+    if (navigator.vibrate) navigator.vibrate(type === 'warn' ? [120,80,120] : [300,120,300]);
+    if (Notification.permission === 'granted') new Notification(title, { body });
+    else alert(`${title}\n${body}`);
+  }
+  async function enableSound() {
+    beep('normal');
+    if ('Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+  }
+  function start() {
+    if (!startTimeEl.value) setNow();
+    const base = todayAtTime(startTimeEl.value);
+    timers = getInputs().map(x => {
+      const spawn = new Date(base.getTime() + ((x.h * 3600 + x.m * 60 + x.s) * 1000));
+      return { ...x, spawn, warned: false, done: false };
+    });
+    running = true;
+    save();
+    tick();
+  }
+  function clearAll() {
+    running = false;
+    timers = [];
+    [...rowsEl.querySelectorAll('input')].forEach(i => i.value = '');
+    for (let i = 1; i <= 9; i++) {
+      document.getElementById(`spawn-${i}`).textContent = '--:--';
+      const left = document.getElementById(`left-${i}`);
+      left.textContent = '00:00:00';
+      left.className = 'count';
+    }
+    resultEl.textContent = 'ยังไม่มีข้อมูล';
+    localStorage.removeItem('bossTimerData');
+  }
+  function tick() {
+    const now = new Date();
+    clockEl.textContent = fmtTime(now, true);
+
+    if (running) {
+      const lines = [];
+      timers.sort((a,b) => a.spawn - b.spawn).forEach(t => {
+        const remain = t.spawn - now;
+        const leftEl = document.getElementById(`left-${t.ch}`);
+        const spawnEl = document.getElementById(`spawn-${t.ch}`);
+        spawnEl.textContent = fmtTime(t.spawn, t.s > 0);
+        leftEl.textContent = fmtLeft(remain);
+        leftEl.className = 'count';
+
+        if (remain <= 5 * 60 * 1000 && remain > 0 && !t.warned) {
+          t.warned = true;
+          leftEl.classList.add('warn');
+          notify('เตือนบอส', `ช่อง ${t.ch} เหลือ 5 นาที`, 'warn');
+        }
+        if (remain <= 0 && !t.done) {
+          t.done = true;
+          leftEl.classList.add('done');
+          notify('บอสเกิดแล้ว', `ช่อง ${t.ch} เกิดแล้ว`, 'done');
+        }
+        if (t.done) leftEl.classList.add('done');
+        else if (remain <= 5 * 60 * 1000) leftEl.classList.add('warn');
+
+        lines.push(`${t.ch} - ${fmtTime(t.spawn, t.s > 0)}`);
+      });
+      resultEl.textContent = lines.length ? lines.join('\n') : 'ยังไม่มีข้อมูล';
+    }
+  }
+  function parseText() {
+    const text = voiceTextEl.value.replace(/\n/g, ' ');
+    const re = /(?:ช่อง|แนล)\s*(\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*(?:(\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*(?:ชั่วโมง|ชม\.?)\s*)?(?:(\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*(?:นาที|min)\s*)?(?:(\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*(?:วิ|วินาที|sec)\s*)?/g;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+      const ch = numberFromText(match[1]);
+      const h = numberFromText(match[2]);
+      const m = numberFromText(match[3]);
+      const s = numberFromText(match[4]);
+      if (ch >= 1 && ch <= 9) setChannel(ch, h, m, s);
+    }
+    const timeMatch = text.match(/(?:เวลาเริ่มจด|เริ่มจด|เวลา)\s*(\d{1,2})[:\.](\d{2})(?::(\d{2}))?/);
+    if (timeMatch) {
+      startTimeEl.value = `${pad(timeMatch[1])}:${pad(timeMatch[2])}:${pad(timeMatch[3] || 0)}`;
+    }
+    save();
+  }
+  function copyResult() {
+    navigator.clipboard?.writeText(resultEl.textContent || '').then(() => alert('Copy แล้ว'));
+  }
+  function save() {
+    const data = {
+      startTime: startTimeEl.value,
+      voiceText: voiceTextEl.value,
+      rows: [...rowsEl.querySelectorAll('tr')].map(tr => ({
+        h: tr.querySelector('.h').value,
+        m: tr.querySelector('.m').value,
+        s: tr.querySelector('.s').value
+      }))
+    };
+    localStorage.setItem('bossTimerData', JSON.stringify(data));
+  }
+  function load() {
+    const raw = localStorage.getItem('bossTimerData');
+    if (!raw) { setNow(); return; }
+    try {
+      const data = JSON.parse(raw);
+      startTimeEl.value = data.startTime || '';
+      voiceTextEl.value = data.voiceText || '';
+      data.rows?.forEach((r, i) => {
+        const tr = rowsEl.querySelectorAll('tr')[i];
+        if (!tr) return;
+        tr.querySelector('.h').value = r.h || '';
+        tr.querySelector('.m').value = r.m || '';
+        tr.querySelector('.s').value = r.s || '';
+      });
+    } catch(e) { setNow(); }
+  }
+
+  createRows();
+  load();
+  document.getElementById('nowBtn').addEventListener('click', () => { setNow(); save(); });
+  document.getElementById('startBtn').addEventListener('click', start);
+  document.getElementById('clearBtn').addEventListener('click', clearAll);
+  document.getElementById('soundBtn').addEventListener('click', enableSound);
+  document.getElementById('parseBtn').addEventListener('click', parseText);
+  document.getElementById('copyBtn').addEventListener('click', copyResult);
+  document.getElementById('saveBtn').addEventListener('click', save);
+  document.getElementById('pasteExampleBtn').addEventListener('click', () => {
+    voiceTextEl.value = 'ช่องห้า 1 ชั่วโมง 32 นาที\nช่องหก 1 ชั่วโมง 53 นาที\nช่องเจ็ด 2 ชั่วโมง 9 นาที\nช่องแปด 7 นาที 32 วิ\nช่องเก้า 25 นาที\nช่องหนึ่ง 33 นาที\nช่องสอง 2 ชั่วโมง 5 นาที\nช่องสาม 1 ชั่วโมง 35 นาที\nช่องสี่ 37 นาที';
+  });
+  document.addEventListener('input', e => {
+    if (e.target.matches('input, textarea')) save();
+  });
+  interval = setInterval(tick, 1000);
+  tick();
+})();
+</script>
+</body>
+</html>
