@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Boss Timer</title>
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#080c18;color:#eef2ff;padding:14px}
+.wrap{max-width:760px;margin:auto}
+h1{margin:8px 0 4px;font-size:30px}
+.sub{color:#aab3cf;margin-bottom:14px}
+.card{background:#141b34;border:1px solid #26304f;border-radius:18px;padding:14px;margin-bottom:14px}
+.clock{font-size:38px;font-weight:900;margin:8px 0 12px}
+button,input,textarea{font:inherit;border-radius:12px;border:1px solid #26304f;background:#10172b;color:#eef2ff;padding:10px}
+button{border:0;font-weight:800;cursor:pointer}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sound{background:#2563eb}
+.clear{background:#7f1d1d}
+.parse{background:#14532d;width:100%;margin-top:10px}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid #26304f;padding:8px 4px;text-align:center}
+th{color:#aab3cf;font-size:13px}
+td:first-child,th:first-child{text-align:left}
+.ch{font-size:20px;font-weight:900}
+input{width:58px;text-align:center}
+.spawn{color:#34d399;font-weight:800}
+.left{font-weight:900;font-variant-numeric:tabular-nums}
+.warn{color:#fbbf24}
+.done{color:#fb7185}
+textarea{width:100%;box-sizing:border-box;min-height:120px;resize:vertical}
+.result{white-space:pre-line;background:#0b1224;border-radius:12px;padding:12px;line-height:1.7;font-family:ui-monospace,Menlo,monospace}
+.hint{font-size:13px;color:#aab3cf}
+@media(max-width:600px){
+body{padding:10px}
+input{width:44px;padding:8px 4px}
+th,td{font-size:13px}
+.clock{font-size:34px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Boss Timer</h1>
+  <div class="sub">กรอกเวลาแล้วเริ่มนับทันที ไม่ต้องกด Start</div>
+
+  <div class="card">
+    <div>เวลาปัจจุบัน</div>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="btns">
+      <button class="sound" id="soundBtn">เปิดเสียง</button>
+      <button class="clear" id="clearBtn">Clear เป็น 0</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>แนล</th>
+          <th>ชม</th>
+          <th>นาที</th>
+          <th>วิ</th>
+          <th>เวลาเกิด</th>
+          <th>เหลือ</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="hint">พูดด้วยไมค์คีย์บอร์ดมือถือ หรือวางข้อความ เช่น “ช่องห้า 1 ชั่วโมง 32 นาที ช่องแปด 7 นาที 32 วิ”</div>
+    <textarea id="textInput" placeholder="ช่องห้า 1 ชั่วโมง 32 นาที
+ช่องหก 1 ชั่วโมง 53 นาที
+ช่องแปด 7 นาที 32 วิ
+ช่องเก้า 25 นาที"></textarea>
+    <button class="parse" id="parseBtn">แปลงข้อความแล้วเริ่มนับ</button>
+  </div>
+
+  <div class="card">
+    <div class="hint">เรียงเวลาเกิด</div>
+    <div class="result" id="result">ยังไม่มีข้อมูล</div>
+  </div>
+</div>
+
+<script>
+const rows=document.getElementById("rows");
+const clock=document.getElementById("clock");
+const result=document.getElementById("result");
+const textInput=document.getElementById("textInput");
+
+let data=[];
+let audioCtx=null;
+
+const thaiNums={
+"ศูนย์":0,"หนึ่ง":1,"นึง":1,"เอ็ด":1,"สอง":2,"สาม":3,"สี่":4,"ห้า":5,
+"หก":6,"เจ็ด":7,"แปด":8,"เก้า":9
+};
+
+function pad(n){return String(n).padStart(2,"0")}
+function fmt(d,sec=false){return `${pad(d.getHours())}:${pad(d.getMinutes())}${sec?":"+pad(d.getSeconds()):""}`.replace("+",":")}
+function fmtLeft(ms){
+  if(ms<=0)return"00:00:00";
+  let s=Math.floor(ms/1000);
+  let h=Math.floor(s/3600);
+  let m=Math.floor((s%3600)/60);
+  let x=s%60;
+  return `${pad(h)}:${pad(m)}:${pad(x)}`;
+}
+function toNum(v){
+  if(!v)return 0;
+  v=String(v).trim();
+  if(/^\d+$/.test(v))return Number(v);
+  return thaiNums[v]??0;
+}
+function beep(type="normal"){
+  try{
+    audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);
+    o.frequency.value=type==="warn"?880:1300;
+    g.gain.setValueAtTime(.001,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.25,audioCtx.currentTime+.03);
+    g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.7);
+    o.start();o.stop(audioCtx.currentTime+.75);
+  }catch(e){}
+}
+function alertBoss(title,msg,type){
+  beep(type);
+  if(navigator.vibrate)navigator.vibrate(type==="warn"?[120,80,120]:[300,120,300]);
+  if("Notification"in window&&Notification.permission==="granted"){
+    new Notification(title,{body:msg});
+  }else{
+    alert(title+"\n"+msg);
+  }
+}
+function save(){localStorage.setItem("bossTimerV2",JSON.stringify(data))}
+function load(){
+  try{
+    const old=JSON.parse(localStorage.getItem("bossTimerV2")||"[]");
+    if(Array.isArray(old)&&old.length===9)data=old;
+  }catch(e){}
+}
+function makeDefault(){
+  data=[];
+  for(let i=1;i<=9;i++){
+    data.push({ch:i,h:"",m:"",s:"",target:null,warned:false,done:false});
+  }
+}
+function createRows(){
+  rows.innerHTML="";
+  data.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td class="ch">${r.ch}</td>
+      <td><input inputmode="numeric" type="number" min="0" class="h" value="${r.h}"></td>
+      <td><input inputmode="numeric" type="number" min="0" class="m" value="${r.m}"></td>
+      <td><input inputmode="numeric" type="number" min="0" class="s" value="${r.s}"></td>
+      <td class="spawn" id="spawn${r.ch}">--:--</td>
+      <td class="left" id="left${r.ch}">00:00:00</td>
+    `;
+    rows.appendChild(tr);
+    tr.querySelectorAll("input").forEach(inp=>{
+      inp.addEventListener("input",()=>{
+        data[i].h=tr.querySelector(".h").value;
+        data[i].m=tr.querySelector(".m").value;
+        data[i].s=tr.querySelector(".s").value;
+        startChannel(i);
+      });
+    });
+  });
+}
+function startChannel(i,base=new Date()){
+  const r=data[i];
+  const h=Number(r.h||0),m=Number(r.m||0),s=Number(r.s||0);
+  if(h===0&&m===0&&s===0){
+    r.target=null;r.warned=false;r.done=false;
+  }else{
+    r.target=base.getTime()+((h*3600+m*60+s)*1000);
+    r.warned=false;
+    r.done=false;
+  }
+  save();
+}
+function render(){
+  const now=new Date();
+  clock.textContent=fmt(now,true);
+
+  const list=[];
+  data.forEach(r=>{
+    const spawn=document.getElementById("spawn"+r.ch);
+    const left=document.getElementById("left"+r.ch);
+    left.className="left";
+
+    if(!r.target){
+      spawn.textContent="--:--";
+      left.textContent="00:00:00";
+      return;
+    }
+
+    const target=new Date(r.target);
+    const remain=r.target-now.getTime();
+
+    spawn.textContent=fmt(target,Number(r.s||0)>0);
+    left.textContent=fmtLeft(remain);
+
+    if(remain<=5*60*1000&&remain>0&&!r.warned){
+      r.warned=true;
+      alertBoss("เตือนบอส","ช่อง "+r.ch+" เหลือ 5 นาที","warn");
+      save();
+    }
+
+    if(remain<=0&&!r.done){
+      r.done=true;
+      alertBoss("บอสเกิดแล้ว","ช่อง "+r.ch+" เกิดแล้ว","done");
+      save();
+    }
+
+    if(r.done)left.classList.add("done");
+    else if(remain<=5*60*1000)left.classList.add("warn");
+
+    list.push({ch:r.ch,time:target,sec:Number(r.s||0)>0});
+  });
+
+  list.sort((a,b)=>a.time-b.time);
+  result.textContent=list.length?list.map(x=>`${x.ch} - ${fmt(x.time,x.sec)}`).join("\n"):"ยังไม่มีข้อมูล";
+}
+function clearAll(){
+  makeDefault();
+  createRows();
+  save();
+  result.textContent="ยังไม่มีข้อมูล";
+}
+function parseText(){
+  const text=textInput.value.replace(/\n/g," ");
+  const base=new Date();
+
+  const re=/(?:ช่อง|แนล)\s*(\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*(?:(\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*(?:ชั่วโมง|ชม)\s*)?(?:(\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*(?:นาที|min)\s*)?(?:(\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)\s*(?:วิ|วินาที|sec)\s*)?/g;
+
+  let match;
+  while((match=re.exec(text))!==null){
+    const ch=toNum(match[1]);
+    const h=toNum(match[2]);
+    const m=toNum(match[3]);
+    const s=toNum(match[4]);
+    if(ch>=1&&ch<=9){
+      data[ch-1].h=h||"";
+      data[ch-1].m=m||"";
+      data[ch-1].s=s||"";
+      startChannel(ch-1,base);
+    }
+  }
+  createRows();
+  save();
+}
+
+document.getElementById("soundBtn").onclick=async()=>{
+  beep();
+  if("Notification"in window&&Notification.permission==="default"){
+    await Notification.requestPermission();
+  }
+};
+document.getElementById("clearBtn").onclick=clearAll;
+document.getElementById("parseBtn").onclick=parseText;
+
+load();
+if(data.length!==9)makeDefault();
+createRows();
+setInterval(render,1000);
+render();
+</script>
+</body>
+</html>
