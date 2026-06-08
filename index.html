@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050816">
+<title>Boss Timer // Liquid Glass v4.0</title>
+<style>
+:root{
+  --bg:#050816;
+  --glass:rgba(15,23,42,.52);
+  --glass2:rgba(30,41,59,.42);
+  --line:rgba(148,163,184,.22);
+  --text:#e5f2ff;
+  --muted:#94a3b8;
+  --cyan:#22d3ee;
+  --lime:#a3e635;
+  --pink:#fb7185;
+  --amber:#fbbf24;
+  --blue:#60a5fa;
+  --shadow:0 24px 80px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html{min-height:100%}
+body{
+  min-height:100%;
+  margin:0;
+  color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at 14% 12%,rgba(34,211,238,.22),transparent 28%),
+    radial-gradient(circle at 78% 0%,rgba(168,85,247,.2),transparent 28%),
+    radial-gradient(circle at 88% 82%,rgba(251,113,133,.16),transparent 30%),
+    linear-gradient(135deg,#030712 0%,#08111f 42%,#111827 100%);
+  overflow-x:hidden;
+}
+body:before{
+  content:"";
+  position:fixed;inset:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:34px 34px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 85%);
+}
+body:after{
+  content:"";
+  position:fixed;inset:0;
+  pointer-events:none;
+  background:linear-gradient(transparent 50%,rgba(255,255,255,.018) 51%);
+  background-size:100% 4px;
+  mix-blend-mode:screen;
+}
+.wrap{width:min(1120px,100%);margin:0 auto;padding:20px}
+.top{
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:14px;
+  align-items:stretch;
+  margin-bottom:14px;
+}
+.panel{
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--line);
+  background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.045));
+  box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.22);
+  backdrop-filter:blur(22px) saturate(145%);
+  -webkit-backdrop-filter:blur(22px) saturate(145%);
+  border-radius:26px;
+}
+.panel:before{
+  content:"";
+  position:absolute;inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 0%,rgba(255,255,255,.22),transparent 30%),
+    linear-gradient(120deg,rgba(255,255,255,.13),transparent 28%,rgba(255,255,255,.06) 60%,transparent);
+  opacity:.68;
+}
+.inner{position:relative;padding:18px}
+h1{
+  margin:0;
+  font-size:clamp(30px,5vw,58px);
+  letter-spacing:-.06em;
+  line-height:.9;
+}
+.glitch{
+  text-shadow:2px 0 rgba(34,211,238,.75),-2px 0 rgba(251,113,133,.58),0 0 24px rgba(34,211,238,.25);
+}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.badge{
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(15,23,42,.42);
+  color:#c7f9ff;
+  border-radius:999px;
+  padding:7px 10px;
+  font:800 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.clock{
+  font:900 clamp(40px,7vw,76px)/.9 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:#e0fbff;
+  text-shadow:0 0 28px rgba(34,211,238,.36);
+  text-align:right;
+}
+.date{text-align:right;color:var(--muted);font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:10px}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+button,input,textarea{
+  font:inherit;
+  color:var(--text);
+  border-radius:16px;
+  border:1px solid rgba(148,163,184,.22);
+  background:rgba(2,6,23,.52);
+  outline:none;
+}
+button{
+  min-height:46px;
+  cursor:pointer;
+  font-weight:900;
+  letter-spacing:.01em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 12px 28px rgba(0,0,0,.2);
+}
+button:hover{transform:translateY(-1px);filter:brightness(1.08)}
+button:active{transform:translateY(0)}
+.primary{background:linear-gradient(135deg,rgba(34,211,238,.75),rgba(37,99,235,.72));color:#02111f}
+.copy{background:linear-gradient(135deg,rgba(163,230,53,.78),rgba(20,184,166,.68));color:#06130a}
+.clear{background:linear-gradient(135deg,rgba(251,113,133,.74),rgba(127,29,29,.72))}
+.ghost{background:rgba(15,23,42,.5)}
+.grid{display:grid;grid-template-columns:1.35fr .65fr;gap:14px}
+.tableWrap{overflow:auto}
+table{width:100%;border-collapse:separate;border-spacing:0 8px}
+th{
+  text-align:center;
+  color:#9fb3c8;
+  font:900 11px ui-monospace,SFMono-Regular,Menlo,monospace;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  padding:0 8px 6px;
+}
+th:first-child{text-align:left}
+td{
+  background:rgba(2,6,23,.38);
+  border-top:1px solid rgba(148,163,184,.16);
+  border-bottom:1px solid rgba(148,163,184,.16);
+  padding:8px;
+  text-align:center;
+}
+td:first-child{border-left:1px solid rgba(148,163,184,.16);border-radius:18px 0 0 18px;text-align:left}
+td:last-child{border-right:1px solid rgba(148,163,184,.16);border-radius:0 18px 18px 0}
+.ch{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:42px;height:34px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(34,211,238,.22),rgba(168,85,247,.2));
+  border:1px solid rgba(34,211,238,.22);
+  color:#cffafe;
+  font:950 18px ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+input{
+  width:68px;
+  padding:11px 8px;
+  text-align:center;
+  font:900 16px ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+input:focus,textarea:focus{border-color:rgba(34,211,238,.8);box-shadow:0 0 0 4px rgba(34,211,238,.12)}
+.spawn,.left{font:950 16px ui-monospace,SFMono-Regular,Menlo,monospace}
+.spawn{color:var(--lime)}
+.left{color:#e2e8f0}
+.warn{color:var(--amber)!important;text-shadow:0 0 18px rgba(251,191,36,.35)}
+.done{color:var(--pink)!important;text-shadow:0 0 18px rgba(251,113,133,.35)}
+textarea{
+  width:100%;
+  min-height:150px;
+  resize:vertical;
+  padding:14px;
+  line-height:1.55;
+  font:800 14px ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.hint{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:10px}
+.result{
+  white-space:pre-line;
+  min-height:212px;
+  padding:14px;
+  border-radius:18px;
+  border:1px solid rgba(148,163,184,.18);
+  background:rgba(2,6,23,.42);
+  font:900 15px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);
+  opacity:0;pointer-events:none;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(15,23,42,.74);
+  backdrop-filter:blur(16px);
+  color:#e0f2fe;
+  padding:12px 16px;
+  border-radius:999px;
+  box-shadow:var(--shadow);
+  font-weight:900;
+  transition:.22s ease;
+  z-index:9;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:860px){
+  .top,.grid{grid-template-columns:1fr}
+  .clock,.date{text-align:left}
+  .actions{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .wrap{padding:12px}
+  input{width:48px;padding:9px 4px}
+  th,td{padding:6px 4px}
+  .spawn,.left{font-size:13px}
+  .ch{width:34px;height:30px;font-size:15px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="top">
+    <div class="panel"><div class="inner">
+      <h1 class="glitch">BOSS<br>TIMER</h1>
+      <div class="badges">
+        <span class="badge">v4.0-liquid-glass</span>
+        <span class="badge">channels: 01-10</span>
+        <span class="badge">auto-start: armed</span>
+        <span class="badge">copy: enabled</span>
+      </div>
+    </div></div>
+    <div class="panel"><div class="inner">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="date" id="dateLine">SYSTEM TIME</div>
+    </div></div>
+  </section>
+
+  <div class="actions">
+    <button class="primary" id="soundBtn">ARM SOUND</button>
+    <button class="copy" id="copyBtn">COPY SPAWN LIST</button>
+    <button class="ghost" id="demoBtn">DEMO INPUT</button>
+    <button class="clear" id="clearBtn">CLEAR 0</button>
+  </div>
+
+  <section class="grid">
+    <div class="panel"><div class="inner tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>CH</th>
+            <th>H</th>
+            <th>MIN</th>
+            <th>SEC</th>
+            <th>SPAWN</th>
+            <th>LEFT</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div></div>
+
+    <div>
+      <div class="panel" style="margin-bottom:14px"><div class="inner">
+        <div class="hint">วางข้อความ/พูดด้วยไมค์มือถือ เช่น “ช่องสิบ 25 นาที ช่องห้า 1 ชั่วโมง 32 นาที”</div>
+        <textarea id="textInput" placeholder="ช่องสิบ 25 นาที
+ช่องห้า 1 ชั่วโมง 32 นาที
+ช่องแปด 7 นาที 32 วิ"></textarea>
+        <button class="primary" id="parseBtn" style="width:100%;margin-top:10px">PARSE + START</button>
+      </div></div>
+
+      <div class="panel"><div class="inner">
+        <div class="hint">เรียงเวลาเกิด</div>
+        <div class="result" id="result">NO ACTIVE CHANNELS</div>
+      </div></div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+const APP_VERSION="bossTimerLiquidV4_10ch";
+const rows=document.getElementById("rows");
+const clock=document.getElementById("clock");
+const dateLine=document.getElementById("dateLine");
+const result=document.getElementById("result");
+const textInput=document.getElementById("textInput");
+const toast=document.getElementById("toast");
+
+let data=[];
+let audioCtx=null;
+
+const thaiNums={
+"ศูนย์":0,"หนึ่ง":1,"นึง":1,"เอ็ด":1,"สอง":2,"สาม":3,"สี่":4,"ห้า":5,
+"หก":6,"เจ็ด":7,"แปด":8,"เก้า":9,"สิบ":10
+};
+
+function pad(n){return String(n).padStart(2,"0")}
+function fmt(d,sec=false){return `${pad(d.getHours())}:${pad(d.getMinutes())}${sec?":"+pad(d.getSeconds()):""}`.replace("+",":")}
+function fmtFull(d){return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`}
+function fmtLeft(ms){
+  if(ms<=0)return"00:00:00";
+  let s=Math.floor(ms/1000);
+  let h=Math.floor(s/3600);
+  let m=Math.floor((s%3600)/60);
+  let x=s%60;
+  return `${pad(h)}:${pad(m)}:${pad(x)}`;
+}
+function toNum(v){
+  if(!v)return 0;
+  v=String(v).trim();
+  if(/^\d+$/.test(v))return Number(v);
+  return thaiNums[v]??0;
+}
+function notify(msg){
+  toast.textContent=msg;
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),1300);
+}
+function beep(type="normal"){
+  try{
+    audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);
+    o.type=type==="warn"?"sawtooth":"square";
+    o.frequency.value=type==="warn"?880:1320;
+    g.gain.setValueAtTime(.001,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.22,audioCtx.currentTime+.03);
+    g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.55);
+    o.start();o.stop(audioCtx.currentTime+.6);
+  }catch(e){}
+}
+function alertBoss(title,msg,type){
+  beep(type);
+  if(navigator.vibrate)navigator.vibrate(type==="warn"?[120,80,120]:[280,100,280]);
+  if("Notification"in window&&Notification.permission==="granted"){
+    new Notification(title,{body:msg});
+  }else{
+    notify(title+" // "+msg);
+  }
+}
+function save(){localStorage.setItem(APP_VERSION,JSON.stringify(data))}
+function load(){
+  try{
+    const old=JSON.parse(localStorage.getItem(APP_VERSION)||"[]");
+    if(Array.isArray(old)&&old.length===10)data=old;
+  }catch(e){}
+}
+function makeDefault(){
+  data=[];
+  for(let i=1;i<=10;i++){
+    data.push({ch:i,h:"",m:"",s:"",target:null,warned:false,done:false});
+  }
+}
+function createRows(){
+  rows.innerHTML="";
+  data.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td><span class="ch">${pad(r.ch)}</span></td>
+      <td><input inputmode="numeric" type="number" min="0" class="h" value="${r.h}" aria-label="channel ${r.ch} hours"></td>
+      <td><input inputmode="numeric" type="number" min="0" class="m" value="${r.m}" aria-label="channel ${r.ch} minutes"></td>
+      <td><input inputmode="numeric" type="number" min="0" class="s" value="${r.s}" aria-label="channel ${r.ch} seconds"></td>
+      <td class="spawn" id="spawn${r.ch}">--:--</td>
+      <td class="left" id="left${r.ch}">00:00:00</td>
+    `;
+    rows.appendChild(tr);
+    tr.querySelectorAll("input").forEach(inp=>{
+      inp.addEventListener("input",()=>{
+        data[i].h=tr.querySelector(".h").value;
+        data[i].m=tr.querySelector(".m").value;
+        data[i].s=tr.querySelector(".s").value;
+        startChannel(i);
+      });
+    });
+  });
+}
+function startChannel(i,base=new Date()){
+  const r=data[i];
+  const h=Number(r.h||0),m=Number(r.m||0),s=Number(r.s||0);
+  if(h===0&&m===0&&s===0){
+    r.target=null;r.warned=false;r.done=false;
+  }else{
+    r.target=base.getTime()+((h*3600+m*60+s)*1000);
+    r.warned=false;r.done=false;
+  }
+  save();
+  render();
+}
+function getSpawnList(){
+  const list=[];
+  data.forEach(r=>{
+    if(!r.target)return;
+    const target=new Date(r.target);
+    list.push({ch:r.ch,time:target,sec:Number(r.s||0)>0});
+  });
+  list.sort((a,b)=>a.time-b.time);
+  return list;
+}
+function render(){
+  const now=new Date();
+  clock.textContent=fmtFull(now);
+  dateLine.textContent=now.toLocaleDateString("th-TH",{weekday:"long",year:"numeric",month:"short",day:"numeric"});
+
+  data.forEach(r=>{
+    const spawn=document.getElementById("spawn"+r.ch);
+    const left=document.getElementById("left"+r.ch);
+    if(!spawn||!left)return;
+    left.className="left";
+
+    if(!r.target){
+      spawn.textContent="--:--";
+      left.textContent="00:00:00";
+      return;
+    }
+
+    const target=new Date(r.target);
+    const remain=r.target-now.getTime();
+
+    spawn.textContent=fmt(target,Number(r.s||0)>0);
+    left.textContent=fmtLeft(remain);
+
+    if(remain<=5*60*1000&&remain>0&&!r.warned){
+      r.warned=true;
+      alertBoss("เตือนบอส","ช่อง "+r.ch+" เหลือ 5 นาที","warn");
+      save();
+    }
+
+    if(remain<=0&&!r.done){
+      r.done=true;
+      alertBoss("บอสเกิดแล้ว","ช่อง "+r.ch+" เกิดแล้ว","done");
+      save();
+    }
+
+    if(r.done)left.classList.add("done");
+    else if(remain<=5*60*1000)left.classList.add("warn");
+  });
+
+  const list=getSpawnList();
+  result.textContent=list.length?list.map(x=>`CH-${pad(x.ch)}  >  ${fmt(x.time,x.sec)}`).join("\n"):"NO ACTIVE CHANNELS";
+}
+function clearAll(){
+  makeDefault();
+  createRows();
+  save();
+  result.textContent="NO ACTIVE CHANNELS";
+  notify("Cleared");
+}
+function parseText(){
+  const text=textInput.value.replace(/\n/g," ");
+  const base=new Date();
+  const num="\\d+|หนึ่ง|นึง|เอ็ด|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า|สิบ";
+  const re=new RegExp(`(?:ช่อง|แนล|ch|channel)\\s*(${num})\\s*(?:(${num})\\s*(?:ชั่วโมง|ชม|hour|hr|h)\\s*)?(?:(${num})\\s*(?:นาที|min|m)\\s*)?(?:(${num})\\s*(?:วิ|วินาที|sec|s)\\s*)?`,"gi");
+
+  let match, count=0;
+  while((match=re.exec(text))!==null){
+    const ch=toNum(match[1]);
+    const h=toNum(match[2]);
+    const m=toNum(match[3]);
+    const s=toNum(match[4]);
+    if(ch>=1&&ch<=10){
+      data[ch-1].h=h||"";
+      data[ch-1].m=m||"";
+      data[ch-1].s=s||"";
+      startChannel(ch-1,base);
+      count++;
+    }
+  }
+  createRows();
+  save();
+  render();
+  notify(count?`Parsed ${count} channel(s)`:"No channel detected");
+}
+async function copyResult(){
+  const text=result.textContent.trim();
+  if(!text||text==="NO ACTIVE CHANNELS"){
+    notify("Nothing to copy");
+    return;
+  }
+  try{
+    await navigator.clipboard.writeText(text);
+    notify("Spawn list copied");
+  }catch(e){
+    const ta=document.createElement("textarea");
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+    notify("Spawn list copied");
+  }
+}
+
+document.getElementById("soundBtn").onclick=async()=>{
+  beep();
+  if("Notification"in window&&Notification.permission==="default"){
+    await Notification.requestPermission();
+  }
+  notify("Sound armed");
+};
+document.getElementById("clearBtn").onclick=clearAll;
+document.getElementById("parseBtn").onclick=parseText;
+document.getElementById("copyBtn").onclick=copyResult;
+document.getElementById("demoBtn").onclick=()=>{
+  textInput.value="ช่องสิบ 25 นาที\nช่องห้า 1 ชั่วโมง 32 นาที\nช่องแปด 7 นาที 32 วิ\nช่องเก้า 45 นาที";
+  parseText();
+};
+
+load();
+if(data.length!==10)makeDefault();
+createRows();
+setInterval(render,1000);
+render();
+</script>
+</body>
+</html>
