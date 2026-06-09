@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TOSM Boss Monitor Compact</title>
+<style>
+:root{
+  --bg:#060a12;--panel:#0d1424;--panel2:#0b1220;--line:#1c2942;
+  --text:#e8eefc;--muted:#8996ad;--orange:#f59e0b;--green:#10bfa5;
+  --red:#ff5b7a;--blue:#6d5dfc;--shadow:0 18px 45px rgba(0,0,0,.35)
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:radial-gradient(circle at 30% 0,#101933 0,#070b13 42%,#05080e 100%);
+  color:var(--text);font-family:Inter,"Segoe UI",Tahoma,sans-serif;font-size:14px
+}
+.wrap{max-width:1260px;margin:auto;padding:18px}
+.top{
+  display:flex;gap:14px;align-items:center;background:linear-gradient(180deg,#111a2d,#0b1220);
+  border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)
+}
+.logo{font-size:27px}.title h1{font-size:21px;margin:0;color:var(--orange)}
+.badge{font-size:11px;background:#4b360d;color:#ffc76b;border:1px solid #76510b;border-radius:7px;padding:5px 8px;margin-left:8px}
+.title p{margin:4px 0 0;color:var(--muted)}
+.topActions{margin-left:auto;display:flex;gap:9px;align-items:center}
+.btn,.input{
+  border:1px solid var(--line);background:#090f1e;color:var(--text);border-radius:9px;
+  padding:9px 12px;font:inherit
+}
+.btn{cursor:pointer;font-weight:800;transition:.12s}
+.btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.orange{background:linear-gradient(135deg,#ffae13,#f28b00);border:0;color:#111}
+.green{background:#0fae98;border:0;color:#fff}
+.ghost{background:#0b1220}.danger{background:#301725!important;border-color:#78334d!important;color:#ff9ab0!important}
+.small{font-size:12px;padding:7px 10px}
+.toolbar{
+  margin:14px 0;display:flex;gap:10px;align-items:center;background:#0b1220;
+  border:1px solid var(--line);border-radius:12px;padding:11px 12px
+}
+.search{width:280px}.spacer{flex:1}.sort{display:flex;gap:8px;align-items:center;color:var(--muted)}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.sumCard{background:#0b1220;border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.sumCard small{display:block;color:var(--muted);font-size:11px;font-weight:800}
+.sumCard b{display:block;margin-top:4px;font-size:21px}
+.sumCard.next b{font-size:14px;color:#ffc15c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.layout{display:grid;grid-template-columns:295px 1fr;gap:14px}
+.panel,.boss,.reportBox{
+  background:rgba(13,20,36,.96);border:1px solid var(--line);
+  border-radius:14px;box-shadow:var(--shadow)
+}
+.panel{padding:15px;height:max-content}
+.panel h2{font-size:15px;color:var(--orange);margin:0 0 13px;border-bottom:1px solid var(--line);padding-bottom:12px}
+.field{margin:11px 0}.field label{display:block;color:var(--muted);font-weight:800;font-size:12px;margin-bottom:7px}
+.field input{width:100%}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.full{width:100%;margin-top:10px}
+.boss{display:grid;grid-template-columns:210px 1fr;gap:12px;padding:13px;margin-bottom:12px}
+.info{border-right:1px solid var(--line);padding-right:13px}
+.level{float:left;background:#17233a;border:1px solid #263657;border-radius:10px;padding:7px 9px;text-align:center;margin-right:9px;font-weight:800}
+.level b{color:#fbbf24;font-size:17px}.name{font-size:18px;font-weight:950;line-height:1.1}.sub{font-size:12px;color:var(--muted);margin:5px 0 10px}
+.pill{display:inline-block;background:#0b1425;border:1px solid #1e2b45;border-radius:8px;padding:5px 8px;font-size:11px;color:#ffc15c;margin:0 4px 8px 0;font-weight:800}
+.infoActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.channels{display:flex;flex-direction:column;gap:3px}
+.chRow{
+  display:grid;grid-template-columns:52px 134px 48px 48px 62px 46px;
+  gap:7px;align-items:center;min-height:42px;padding:4px 8px;
+  background:linear-gradient(90deg,#08101d,#0a1322);border:1px solid #25334b;border-radius:8px
+}
+.chRow.active{border-color:#f59e0b}.chRow.ready{border-color:#10bfa5}.chRow.soon{border-color:#ff5b7a;box-shadow:0 0 12px rgba(255,91,122,.13)}
+.chNo{font-weight:950;font-size:14px}
+.timer{
+  font:900 18px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color:var(--orange);letter-spacing:-.03em;white-space:nowrap
+}
+.ready .timer{color:#10bfa5}.idle .timer{color:#708096}
+.timeInput{
+  height:30px;width:100%;background:#0b1425;border:1px solid #263657;border-radius:7px;
+  color:#e8eefc;text-align:center;font-weight:900;font-size:13px
+}
+.timeInput:focus{outline:1px solid var(--orange);border-color:var(--orange)}
+.timeInput::-webkit-outer-spin-button,.timeInput::-webkit-inner-spin-button{appearance:none;margin:0}
+.iconBtn{height:30px;border-radius:7px;border:0;font-weight:900;cursor:pointer;font-size:12px}
+.cd{background:#0fae98;color:#fff}.x{background:#1a2639;color:#dbeafe;border:1px solid #263657}
+.reportBox{margin-top:14px;padding:14px}
+.reportHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.reportHead h2{margin:0;color:var(--orange);font-size:15px}
+.reportStrip{display:flex;gap:0;overflow-x:auto;background:#070d18;border:1px solid #1c2942;border-radius:10px;padding:10px}
+.reportItem{min-width:82px;text-align:center;border-right:1px solid #263657;padding:0 12px}
+.reportItem:last-child{border-right:0}.reportItem .n{font-size:19px;font-weight:950}.reportItem .t{margin-top:3px;color:var(--orange);font-size:17px;font-weight:950}
+.reportItem.ready .n,.reportItem.ready .t{color:#ff5b7a}
+.empty{padding:34px;text-align:center;color:var(--muted);border:1px dashed #263657;border-radius:14px;background:#0a1020}
+.toast{position:fixed;right:18px;top:18px;max-width:330px;background:#0b1220;border:1px solid #96a0ba;border-radius:12px;padding:13px 16px;box-shadow:var(--shadow);z-index:9}
+.toast b{color:#fff}.toast p{color:#c5cce0;margin:5px 0 0;font-size:13px}.hidden{display:none}
+.file{display:none}
+@media(max-width:980px){
+  .layout{grid-template-columns:1fr}.boss{grid-template-columns:1fr}.info{border-right:0;border-bottom:1px solid var(--line);padding:0 0 11px}.topActions{display:none}
+}
+@media(max-width:720px){
+  .wrap{padding:10px}.toolbar{flex-wrap:wrap}.search{width:100%}.summary{grid-template-columns:repeat(2,1fr)}
+  .chRow{grid-template-columns:46px 1fr 44px 44px 54px 40px;gap:5px;padding:4px 6px}.timer{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">⚔️</div>
+    <div class="title">
+      <h1>TOSM BOSS MONITOR <span class="badge">COMPACT FULL</span></h1>
+      <p>ระบบนับถอยหลังบอสแบบแถวเล็ก ใช้งานไว ไม่ต้องเลื่อนซ้ายขวา</p>
+    </div>
+    <div class="topActions">
+      <button class="btn primary" id="enableNotify">🔔 แจ้งเตือน</button>
+      <button class="btn ghost" id="exportBtn">EXPORT</button>
+      <button class="btn ghost" id="importBtn">IMPORT</button>
+      <input class="file" type="file" id="importFile" accept=".json,application/json">
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <span>🔍 ค้นหา:</span>
+    <input class="input search" id="search" placeholder="ชื่อบอส, แผนที่, เลเวล">
+    <span class="spacer"></span>
+    <div class="sort">
+      จัดเรียง:
+      <button class="btn orange small" data-sort="level">ระดับ</button>
+      <button class="btn ghost small" data-sort="time">เวลาใกล้สุด</button>
+    </div>
+  </div>
+
+  <section class="summary">
+    <div class="sumCard"><small>บอสทั้งหมด</small><b id="sumBoss">0</b></div>
+    <div class="sumCard"><small>กำลังนับ</small><b id="sumActive">0</b></div>
+    <div class="sumCard"><small>พร้อมเกิด</small><b id="sumReady">0</b></div>
+    <div class="sumCard next"><small>เกิดถัดไป</small><b id="sumNext">--</b></div>
+  </section>
+
+  <main class="layout">
+    <aside class="panel">
+      <h2>➕ เพิ่มข้อมูลบอส</h2>
+      <div class="field"><label>ชื่อบอส</label><input class="input" id="bossName" placeholder="เช่น Kepuri"></div>
+      <div class="field"><label>แผนที่</label><input class="input" id="bossMap" placeholder="เช่น Rank 22"></div>
+      <div class="two">
+        <div class="field"><label>เผ่า</label><input class="input" id="race" value="Insect"></div>
+        <div class="field"><label>ธาตุ</label><input class="input" id="element" value="Earth"></div>
+      </div>
+      <div class="two">
+        <div class="field"><label>เลเวล</label><input class="input" id="level" type="number" value="15"></div>
+        <div class="field"><label>CD นาที</label><input class="input" id="respawn" type="number" value="120"></div>
+      </div>
+      <div class="field"><label>จำนวน CH</label><input class="input" id="channels" type="number" value="10" min="1" max="12"></div>
+      <button class="btn orange full" id="saveBoss">💾 บันทึกบอส</button>
+    </aside>
+
+    <section id="list"></section>
+  </main>
+
+  <section class="reportBox">
+    <div class="reportHead">
+      <h2>📋 REPORT</h2>
+      <button class="btn orange small" id="copyReportBtn">COPY REPORT</button>
+    </div>
+    <div class="reportStrip" id="reportStrip"></div>
+  </section>
+</div>
+
+<div class="toast hidden" id="toast"><b>แจ้งเตือน</b><p id="toastText">พร้อมใช้งาน</p></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const APP_KEY='tosmBossesCompactFullV1';
+const OLD_KEYS=['tosmBossesCompactRowsV1','tosmBossesInterfaceV6','tosmBosses'];
+const seed=[
+ {name:'Indignant Solcom',map:'ดันเจี้ยน Rank 22',race:'Devil',element:'Water',level:133,respawn:1440,channels:10,times:Array(10).fill(0)},
+ {name:'Strong Rajatoad',map:'อาณาจักร Epherota',race:'Mutant',element:'ทั่วไป',level:130,respawn:1440,channels:8,times:Array(8).fill(0)}
+];
+let bosses=loadData();
+let sortMode='level';
+let inputCache={};
+
+function loadData(){
+ try{
+  let raw=localStorage.getItem(APP_KEY);
+  if(raw)return normalize(JSON.parse(raw));
+  for(const key of OLD_KEYS){
+   raw=localStorage.getItem(key);
+   if(raw){
+    const old=JSON.parse(raw);
+    if(Array.isArray(old))return normalize(old);
+   }
+  }
+ }catch(e){}
+ return normalize(seed);
+}
+function normalize(arr){
+ if(!Array.isArray(arr))arr=seed;
+ arr.forEach(b=>{
+  b.name=b.name||'Unknown Boss'; b.map=b.map||'-'; b.race=b.race||'-'; b.element=b.element||'-';
+  b.level=Number(b.level||1); b.respawn=Number(b.respawn||120);
+  b.channels=Math.max(1,Math.min(12,Number(b.channels||1)));
+  if(!Array.isArray(b.times))b.times=[];
+  for(let i=0;i<b.channels;i++)b.times[i]=Number(b.times[i]||0);
+  b.times.length=b.channels;
+ });
+ return arr;
+}
+function save(){localStorage.setItem(APP_KEY,JSON.stringify(bosses))}
+function pad(n){return String(n).padStart(2,'0')}
+function fmt(sec){
+ sec=Math.max(0,Math.floor(sec));
+ let h=pad(Math.floor(sec/3600)),m=pad(Math.floor(sec%3600/60)),s=pad(sec%60);
+ return `${h}:${m}:${s}`;
+}
+function fmtHM(ms){let d=new Date(ms);return `${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function leftSec(target){return target?Math.max(0,Math.ceil((target-Date.now())/1000)):0}
+function showToast(txt){
+ toastText.textContent=txt;toast.classList.remove('hidden');
+ setTimeout(()=>toast.classList.add('hidden'),1800);
+}
+function minTarget(b){return Math.min(...b.times.filter(t=>t>Date.now()),Infinity)}
+function sortedEntries(){
+ let rows=[];
+ bosses.forEach(b=>b.times.forEach((t,i)=>{
+  if(t>Date.now())rows.push({boss:b,ch:i+1,target:t,left:leftSec(t)});
+ }));
+ rows.sort((a,b)=>a.target-b.target);
+ return rows;
+}
+function reportItems(){
+ const timed=sortedEntries().map(x=>({ch:x.ch,time:fmtHM(x.target),target:x.target,boss:x.boss.name,ready:false}));
+ const ready=[];
+ bosses.forEach(b=>b.times.forEach((t,i)=>{if(t&&t<=Date.now())ready.push({ch:i+1,boss:b.name,ready:true})}));
+ ready.sort((a,b)=>a.ch-b.ch);
+ return [...timed,...ready];
+}
+function buildReportText(){
+ const items=reportItems();
+ return items.length?items.map(x=>x.ready?`${x.ch} READY`:`${x.ch} ${x.time}`).join('\n'):'';
+}
+function updateSummary(){
+ let active=0,ready=0;
+ bosses.forEach(b=>b.times.forEach(t=>{if(t>Date.now())active++;else if(t)ready++;}));
+ const next=sortedEntries()[0];
+ sumBoss.textContent=bosses.length;
+ sumActive.textContent=active;
+ sumReady.textContent=ready;
+ sumNext.textContent=next?`${next.boss.name} CH${next.ch} ${fmtHM(next.target)}`:'--';
+ const items=reportItems();
+ reportStrip.innerHTML=items.length?items.map(x=>`
+  <div class="reportItem ${x.ready?'ready':''}">
+    <div class="n">${x.ready?'READY':x.ch}</div>
+    <div class="t">${x.ready?x.ch:x.time}</div>
+  </div>`).join(''):'<div class="reportItem"><div class="n">--</div><div class="t">NO DATA</div></div>';
+}
+function render(){
+ const q=search.value.toLowerCase();
+ let arr=[...bosses].filter(b=>(b.name+b.map+b.level).toLowerCase().includes(q));
+ if(sortMode==='level')arr.sort((a,b)=>b.level-a.level);else arr.sort((a,b)=>minTarget(a)-minTarget(b));
+ list.innerHTML=arr.length?'':'<div class="empty">ยังไม่มีข้อมูลบอส</div>';
+ arr.forEach(b=>{
+  const bi=bosses.indexOf(b);
+  let rows='';
+  for(let i=0;i<b.channels;i++){
+   const key=bi+'_'+i, cache=inputCache[key]||{hh:'',mm:''};
+   const t=b.times[i]||0, active=t>Date.now(), ready=t&&t<=Date.now(), sec=leftSec(t);
+   const cls=active?(sec<=600?'active soon':'active'):(ready?'ready':'idle');
+   const timeText=active?fmt(sec):(ready?'READY':'--:--:--');
+   rows+=`<div class="chRow ${cls}" id="ch_${bi}_${i}">
+    <div class="chNo">CH${i+1}</div>
+    <div class="timer" id="time_${bi}_${i}">${timeText}</div>
+    <input class="timeInput" id="hh_${bi}_${i}" inputmode="numeric" maxlength="2" placeholder="HH" value="${cache.hh}" oninput="timeInput(${bi},${i},'hh',this)" onblur="timeBlur(${bi},${i},'hh',this)">
+    <input class="timeInput" id="mm_${bi}_${i}" inputmode="numeric" maxlength="2" placeholder="MM" value="${cache.mm}" oninput="timeInput(${bi},${i},'mm',this)" onblur="timeBlur(${bi},${i},'mm',this)">
+    <button class="iconBtn cd" onclick="markDead(${bi},${i})">CD</button>
+    <button class="iconBtn x" onclick="clearChannel(${bi},${i})">X</button>
+   </div>`;
+  }
+  list.innerHTML+=`<article class="boss">
+   <div class="info">
+    <div class="level">LV<br><b>${b.level}</b></div>
+    <div class="name">${b.name}</div>
+    <div class="sub">📍 ${b.map}</div>
+    <span class="pill">🗡️ ${b.race}</span><span class="pill">💧 ${b.element}</span>
+    <div class="infoActions">
+      <button class="btn orange small" onclick="copyBossReport(${bi})">📋 รายงาน</button>
+      <button class="btn ghost small" onclick="editBoss(${bi})">⚙️</button>
+      <button class="btn danger small" onclick="deleteBoss(${bi})">ลบ</button>
+    </div>
+   </div>
+   <div class="channels">${rows}</div>
+  </article>`;
+ });
+ updateSummary();
+}
+function updateTick(){
+ bosses.forEach((b,bi)=>b.times.forEach((t,ci)=>{
+  const el=$(`time_${bi}_${ci}`), row=$(`ch_${bi}_${ci}`);
+  if(!el||!row)return;
+  const sec=leftSec(t);
+  if(t>Date.now()){
+   el.textContent=fmt(sec);
+   row.className='chRow '+(sec<=600?'active soon':'active');
+  }else if(t){
+   el.textContent='READY';
+   row.className='chRow ready';
+  }else{
+   el.textContent='--:--:--';
+   row.className='chRow idle';
+  }
+ }));
+ updateSummary();
+}
+function clean2(v,max){
+ v=String(v||'').replace(/\\D/g,'').slice(0,2);
+ if(v!==''&&Number(v)>max)v=String(max).padStart(2,'0');
+ return v;
+}
+function maybeStart(bi,ci){
+ const key=bi+'_'+ci, p=inputCache[key];
+ if(!p || p.hh.length!==2 || p.mm.length!==2)return;
+ const sec=(Number(p.hh)*3600)+(Number(p.mm)*60);
+ if(sec>0){
+  bosses[bi].times[ci]=Date.now()+sec*1000;
+  delete inputCache[key];save();render();
+  showToast(`ตั้งเวลา ${bosses[bi].name} CH${ci+1} แล้ว`);
+ }
+}
+function timeInput(bi,ci,part,el){
+ const key=bi+'_'+ci;if(!inputCache[key])inputCache[key]={hh:'',mm:''};
+ el.value=clean2(el.value,part==='hh'?99:59);
+ inputCache[key][part]=el.value;
+ if(part==='hh'&&el.value.length===2)$(`mm_${bi}_${ci}`)?.focus();
+ maybeStart(bi,ci);
+}
+function timeBlur(bi,ci,part,el){
+ const key=bi+'_'+ci;if(!inputCache[key])inputCache[key]={hh:'',mm:''};
+ if(el.value.length===1){el.value=pad(el.value);inputCache[key][part]=el.value}
+ maybeStart(bi,ci);
+}
+function markDead(bi,ci){
+ const b=bosses[bi];
+ b.times[ci]=Date.now()+Number(b.respawn||120)*60*1000;
+ save();render();showToast(`${b.name} CH${ci+1} เริ่ม CD`);
+}
+function clearChannel(bi,ci){
+ delete inputCache[bi+'_'+ci];bosses[bi].times[ci]=0;
+ save();render();showToast(`ล้าง CH${ci+1}`);
+}
+function deleteBoss(i){if(confirm('ลบบอสนี้ใช่ไหม?')){bosses.splice(i,1);save();render()}}
+function editBoss(i){
+ const b=bosses[i];
+ bossName.value=b.name;bossMap.value=b.map;race.value=b.race;element.value=b.element;level.value=b.level;respawn.value=b.respawn;channels.value=b.channels;
+ bosses.splice(i,1);save();render();
+}
+function copyText(text){
+ if(!text){showToast('ไม่มี Report');return}
+ navigator.clipboard?.writeText(text).then(()=>showToast('คัดลอกแล้ว')).catch(()=>{
+  const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('คัดลอกแล้ว');
+ });
+}
+function copyBossReport(i){
+ const b=bosses[i], rows=[];
+ b.times.forEach((t,ci)=>{if(t>Date.now())rows.push({text:`${ci+1} ${fmtHM(t)}`,target:t});else if(t)rows.push({text:`${ci+1} READY`,target:Infinity})});
+ rows.sort((a,b)=>a.target-b.target);
+ copyText(rows.map(x=>x.text).join('\n'));
+}
+saveBoss.onclick=()=>{
+ const ch=Math.max(1,Math.min(12,+channels.value||1));
+ bosses.push({name:bossName.value||'Unknown Boss',map:bossMap.value||'-',race:race.value||'-',element:element.value||'-',level:+level.value||1,respawn:+respawn.value||120,channels:ch,times:Array(ch).fill(0)});
+ save();render();showToast('บันทึกบอสแล้ว');
+};
+enableNotify.onclick=async()=>{
+ if('Notification'in window)await Notification.requestPermission();
+ showToast('เปิดระบบแจ้งเตือนแล้ว');
+};
+exportBtn.onclick=()=>{
+ const blob=new Blob([JSON.stringify(bosses,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tosm-boss-data.json';a.click();
+};
+importBtn.onclick=()=>importFile.click();
+importFile.onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{try{bosses=normalize(JSON.parse(r.result));save();render();showToast('Import แล้ว')}catch(err){showToast('Import ไม่สำเร็จ')}};
+ r.readAsText(f);
+};
+search.oninput=render;
+document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{sortMode=b.dataset.sort;render()});
+copyReportBtn.onclick=()=>copyText(buildReportText());
+render();
+setInterval(updateTick,1000);
+</script>
+</body>
+</html>
